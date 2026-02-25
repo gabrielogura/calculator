@@ -12,21 +12,56 @@ display.grid(row=0, column=0, columnspan=4, sticky='nsew', padx=5, pady=5)
 
 
 current_operator = ''
+
 num1 = None
 
+should_clear = False
+
 def click_number(n):
+    global should_clear
+    if should_clear:
+        display.delete(0, tk.END)
+        should_clear = False
     display.insert(tk.END, str(n))
 
 def click_operator(op):
     global current_operator, num1
-    num1 = float(display.get())
-    current_operator = op
-    display.delete(0, tk.END)
+
+    text = display.get()
+
+    if text and text[-1] in '+-x/':
+        display.delete(len(text)-1, tk.END)
+        display.insert(tk.END, f'{op}')
+        current_operator = op
+        return
+    
+    if not text:
+        return
+
+    try:
+        num1 = float(text)
+        current_operator = op
+        display.insert(tk.END, f'{op}')
+    except ValueError:
+        pass
+
 
 def calculate():
-    global current_operator, num1
+    global current_operator, num1, should_clear
+
     try:
-        num2 = float(display.get())
+        expression = display.get()
+
+        if current_operator == '':
+            return
+
+        parts = expression.split(current_operator)
+
+        if len(parts) != 2:
+            return
+
+        num2 = float(parts[1])
+
         calc = Calculator(num1, num2)
 
         if current_operator == '+':
@@ -39,22 +74,29 @@ def calculate():
             if num2 == 0:
                 display.delete(0, tk.END)
                 display.insert(tk.END, 'Erro: Divisão por 0')
+                should_clear = True
                 return
             result = calc.div()
-        else:
-            return
+
+        if result.is_integer():
+            result = int(result)
 
         display.delete(0, tk.END)
         display.insert(tk.END, str(result))
-    
+
+        current_operator = ''
+        should_clear = True
+
     except ValueError:
         display.delete(0, tk.END)
-        display.insert(tk.END, 'Erro: Entrada inválida')
+        display.insert(tk.END, 'Erro')
+        should_clear = True
 
 def clean():
     global current_operator, num1
     current_operator = ''
     num1 = None
+    should_clear = False
     display.delete(0, tk.END)
 
 #Botões
